@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Promet · Inicio</title>
+  <link rel="stylesheet" href="assets/styles.css">
+  <!-- Puedes dejar o quitar esta línea; no es necesaria para el gate -->
+  <script defer src="assets/app.js?v=4"></script>
+  <style>
+    /* estilos mínimos por si styles.css tarda */
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#fff;color:#000}
+    .header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:4px solid #142C54;background:linear-gradient(90deg,#E4E4E3,#fff)}
+    .brand{font-weight:800;color:#142C54}
+    .contact{font-size:.95rem}
+    .badge{background:#F26135;color:#fff;border-radius:999px;padding:4px 8px;font-size:.8rem}
+    .container{max-width:980px;margin:0 auto;padding:16px}
+    .card{border:1px solid #ddd;border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    label{display:block;margin:10px 0 6px;font-weight:600}
+    select{width:100%;padding:12px;border:2px solid #ccc;border-radius:12px}
+    .notice{padding:10px;border-left:4px solid #F26135;background:#fff1ec;border-radius:8px;margin:12px 0}
+    .actions{display:flex;gap:10px}
+    .btn{border:none;border-radius:14px;padding:12px 16px;font-weight:700;cursor:pointer}
+    .btn-primary{background:#142C54;color:#fff}
+    .btn-ghost{background:#f6f6f6}
+    footer{margin:24px 0 12px;text-align:center;color:#666;font-size:.9rem}
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="brand">Promet Onboarding</div>
+    <div class="contact">Contacto: <a href="mailto:onboarding@promet.cl">onboarding@promet.cl</a></div>
+    <div class="badge">v0.2</div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h2>Selecciona tu rol y módulo</h2>
+
+      <div class="row">
+        <div>
+          <label>Rol</label>
+          <select id="rol">
+            <option value="">Selecciona</option>
+            <option value="participante">Participante</option>
+            <option value="formador">Formador</option>
+            <option value="champion">Champion</option>
+          </select>
+        </div>
+        <div>
+          <label>Módulo / Día</label>
+          <select id="mod">
+            <option value="">Selecciona</option>
+            <option value="D1">Día 1</option>
+            <option value="D2">Día 2</option>
+            <option value="D3">Día 3</option>
+            <option value="D4">Día 4</option>
+            <option value="D5">Día 5 (Prueba)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="notice">Para acceder necesitarás la <strong>password</strong> del rol.</div>
+
+      <div class="actions">
+        <button class="btn btn-ghost" id="btnQuiz">Ir a Prueba (D5)</button>
+        <button class="btn btn-primary" id="btnGo">Continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>© Promet</footer>
+
+  <script>
+    // Passwords por rol
+    const TOKENS = {
+      participante: "PART2025",
+      formador: "FORM2025!",
+      champion: "CHAMP2025!"
+    };
+
+    // Destinos por rol
+    const PAGES = {
+      participante: "participante.html",
+      formador: "formador.html",
+      champion: "champion-aseo.html"
+    };
+
+    function askPassword(expected){
+      const pass = prompt("Ingresa la password del rol seleccionado:");
+      if (!pass) return null;
+      if (pass !== expected) { alert("Password incorrecta."); return null; }
+      return pass;
+    }
+
+    // Botón Continuar (usa rol + módulo seleccionados)
+    document.getElementById("btnGo").addEventListener("click", () => {
+      const rol = document.getElementById("rol").value;
+      const mod = document.getElementById("mod").value || "D1";
+      if (!rol) { alert("Selecciona un rol."); return; }
+      if (!mod) { alert("Selecciona un módulo/día."); return; }
+
+      const expected = TOKENS[rol];
+      const pass = askPassword(expected);
+      if (!pass) return;
+
+      const target = PAGES[rol];
+      // Pasamos mod y la password como k
+      location.href = `${target}?mod=${encodeURIComponent(mod)}&k=${encodeURIComponent(pass)}`;
+    });
+
+    // Acceso directo a la Prueba (D5) como Participante
+    document.getElementById("btnQuiz").addEventListener("click", () => {
+      const expected = TOKENS.participante;
+      const pass = askPassword(expected);
+      if (!pass) return;
+      location.href = `prueba.html?mod=D5&k=${encodeURIComponent(pass)}`;
+    });
+  </script>
+</body>
+</html>
