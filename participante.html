@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Participante · Registro de Satisfacción</title>
   <link rel="stylesheet" href="assets/styles.css" />
-  <script defer src="assets/app.js?v=5"></script>
-
+  <!-- Rompe caché -->
+  <script defer src="assets/app.js?v=6"></script>
   <style>
-    /* refuerzos mínimos por si tarda el CSS principal */
+    /* refuerzos mínimos si tarda el CSS principal */
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#fff;color:#000}
     .header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:4px solid #142C54;background:linear-gradient(90deg,#E4E4E3,#fff)}
     .brand{font-weight:800;color:#142C54}
@@ -42,6 +42,19 @@
   <div class="contact">Contacto: <a href="mailto:onboarding@promet.cl">onboarding@promet.cl</a></div>
   <div class="badge">Módulo: <span id="modTag"></span> · <span id="modTitle"></span></div>
 </header>
+
+<!-- OVERRIDE GARANTIZADO DE API_URL (igual que en Ficha de Clientes) -->
+<script>
+  (function(){
+    // <- DEJA AQUÍ TU URL /exec
+    var URL_BACKEND = "https://script.google.com/macros/s/AKfycbz-nlterj3rCyJn8ajkmZRAVxSZEnIUElM0oPyQ3JxdUwKYwbvqM4r8rSJlLiyUJfS0/exec";
+    window.PROMET = window.PROMET || {};
+    window.PROMET.CONFIG = window.PROMET.CONFIG || {};
+    window.PROMET.CONFIG.API_URL = URL_BACKEND;
+    window.PROMET.BUILD = "v6";
+    console.log("[PROMET] API_URL override:", window.PROMET.CONFIG.API_URL);
+  })();
+</script>
 
 <div class="container">
   <form id="f" class="card">
@@ -123,7 +136,6 @@
 
   const mod = usp.get('mod') || 'D1';
   document.getElementById('modTag').textContent = mod;
-  // título dinámico (si app.js define los nombres)
   if (window.PROMET?.CONFIG?.MOD_TITLES) {
     document.getElementById('modTitle').textContent = window.PROMET.CONFIG.MOD_TITLES[mod] || mod;
   } else {
@@ -150,15 +162,15 @@
   renderScale7('e2', document.getElementById('sc_claridad'));
   renderScale7('e3', document.getElementById('sc_lugar'));
 
-  // Fallback si falta PROMET.apiPost o la API_URL
+  // Fallback apiPost (usa API_URL del override)
   (function ensureApiPost(){
     if (window.PROMET && typeof window.PROMET.apiPost === 'function') return;
     window.PROMET = window.PROMET || {};
-    const API_URL = (window.PROMET.CONFIG && window.PROMET.CONFIG.API_URL) || 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+    window.PROMET.CONFIG = window.PROMET.CONFIG || {};
+    const API_URL = window.PROMET.CONFIG.API_URL;
+
     window.PROMET.apiPost = async function(route, payload){
-      if (!API_URL || API_URL.includes('YOUR_APPS_SCRIPT_WEB_APP_URL_HERE')) {
-        throw new Error('Configura API_URL en assets/app.js con la URL de tu Apps Script (termina en /exec).');
-      }
+      if (!API_URL) throw new Error('API_URL no definida.');
       const res = await fetch(API_URL, {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ route, ...payload })
