@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Participante · Registro de Satisfacción</title>
+  <link rel="stylesheet" href="assets/styles.css">
+  <script defer src="assets/app.js?v=4"></script>
+  <style>
+    /* refuerzos mínimos por si tarda el CSS principal */
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#fff;color:#000}
+    .header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:4px solid #142C54;background:linear-gradient(90deg,#E4E4E3,#fff)}
+    .brand{font-weight:800;color:#142C54}
+    .contact{font-size:.95rem}
+    .badge{background:#F26135;color:#fff;border-radius:999px;padding:4px 8px;font-size:.8rem}
+    .container{max-width:980px;margin:0 auto;padding:16px}
+    .card{border:1px solid #ddd;border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    label{display:block;margin:10px 0 6px;font-weight:600}
+    input,select,textarea{width:100%;padding:12px;border:2px solid #ccc;border-radius:12px;background:#fff;color:#000;font-size:1rem}
+    textarea{min-height:90px}
+    fieldset{border:1px solid #ddd;border-radius:12px;padding:12px;margin:12px 0}
+    legend{padding:0 6px;font-weight:700;color:#142C54}
+    .actions{display:flex;gap:10px;position:sticky;bottom:0;background:#fff;border-top:1px solid #ddd;padding:12px;margin-top:16px}
+    .btn{border:none;border-radius:14px;padding:12px 16px;font-weight:700;cursor:pointer}
+    .btn-primary{background:#142C54;color:#fff}
+    .btn-ghost{background:#f6f6f6}
+    /* Escalas 1..7 */
+    .grid-topics{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+    .scale-head{display:flex;gap:18px;margin-bottom:6px;color:#555;font-weight:600;justify-content:flex-end}
+    .scale{display:flex;gap:18px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+    .scale input{display:none}
+    .dot{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;border:2px solid #142C54;cursor:pointer}
+    input:checked + .dot{background:#142C54;color:#fff}
+    footer{margin:24px 0 12px;text-align:center;color:#666;font-size:.9rem}
+  </style>
+</head>
+<body>
+<header class="header">
+  <div class="brand">Participante · Registro de Satisfacción</div>
+  <div class="contact">Contacto: <a href="mailto:onboarding@promet.cl">onboarding@promet.cl</a></div>
+  <div class="badge">Módulo: <span id="modTag"></span> · <span id="modTitle"></span></div>
+</header>
+
+<div class="container">
+  <form id="f" class="card">
+    <div class="row">
+      <div>
+        <label>Nombre y Apellido</label>
+        <input name="nombre" required placeholder="Ej: Cristóbal Alfaro">
+      </div>
+      <div>
+        <label>Cargo</label>
+        <input name="cargo" required placeholder="Ej: Auxiliar de Aseo">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>RUT (14122472-7)</label>
+        <input name="rut" required placeholder="14122472-7">
+      </div>
+      <div>
+        <label>Hotel</label>
+        <select name="hotel" id="hotel" required></select>
+      </div>
+    </div>
+
+    <fieldset>
+      <legend>Evaluación del módulo (1 a 7)</legend>
+
+      <div class="grid-topics">
+        <div>Presentación y Contenidos</div>
+        <div>
+          <div class="scale-head"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span></div>
+          <div id="sc_presentacion" class="scale"></div>
+        </div>
+      </div>
+
+      <div class="grid-topics">
+        <div>Claridad de la Explicación del Formador</div>
+        <div>
+          <div class="scale-head"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span></div>
+          <div id="sc_claridad" class="scale"></div>
+        </div>
+      </div>
+
+      <div class="grid-topics">
+        <div>Lugar / Calidad de la conexión</div>
+        <div>
+          <div class="scale-head"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span></div>
+          <div id="sc_lugar" class="scale"></div>
+        </div>
+      </div>
+    </fieldset>
+
+    <div class="row">
+      <div>
+        <label>Lo que más te gustó (opcional)</label>
+        <textarea name="lo_mejor" placeholder="..."></textarea>
+      </div>
+      <div>
+        <label>Lo que se puede mejorar (opcional)</label>
+        <textarea name="a_mejorar" placeholder="..."></textarea>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" onclick="history.back()">Volver</button>
+      <button class="btn btn-primary">Enviar</button>
+    </div>
+  </form>
+</div>
+
+<footer>© Promet</footer>
+
+<script>
+  (function(){
+    // Gate básico: si alguien entra sin password (k), vuelve al inicio
+    const usp = new URLSearchParams(location.search);
+    if(!usp.get('k')) {
+      location.href = 'index.html';
+      return;
+    }
+
+    // Título de módulo dinámico
+    const mod = usp.get('mod') || 'D1';
+    document.getElementById('modTag').textContent = mod;
+    // Usa mapeo de títulos si existe en app.js
+    if (window.PROMET?.CONFIG?.MOD_TITLES && document.getElementById('modTitle')) {
+      document.getElementById('modTitle').textContent = (window.PROMET.CONFIG.MOD_TITLES[mod] || mod);
+    } else {
+      document.getElementById('modTitle').textContent = mod;
+    }
+
+    // Hoteles (con fallback)
+    const selHotel = document.getElementById('hotel');
+    if (window.PROMET?.renderHoteles) window.PROMET.renderHoteles(selHotel);
+    if (!selHotel.options.length || selHotel.options.length === 1) {
+      selHotel.innerHTML = `
+        <option value="">Selecciona hotel</option>
+        <option>Calama</option><option>Colbún</option><option>Coya</option>
+        <option>Engie</option><option>Fidelia</option><option>Mejillones</option>`;
+    }
+
+    // Render de escalas 1..7 para los 3 criterios
+    function renderScale7(name, host){
+      host.innerHTML = [1,2,3,4,5,6,7].map(n => (
+        `<label><input type="radio" name="${name}" value="${n}" required><span class="dot">${n}</span></label>`
+      )).join('');
+    }
+    renderScale7('e1', document.getElementById('sc_presentacion'));
+    renderScale7('e2', document.getElementById('sc_claridad'));
+    renderScale7('e3', document.getElementById('sc_lugar'));
+
+    // Submit
+    const form = document.getElementById('f');
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const fd = new FormData(form);
+
+      const rut = (fd.get('rut')||'').trim();
+      if (!window.PROMET?.validarRUT ? !/^[0-9]{7,8}-[0-9Kk]$/.test(rut) : !window.PROMET.validarRUT(rut)) {
+        alert('RUT inválido. Formato: 14122472-7 (sin puntos)'); return;
+      }
+      if (!fd.get('e1') || !fd.get('e2') || !fd.get('e3')) {
+        alert('Debes seleccionar una nota (1–7) en cada criterio.'); return;
+      }
+
+      try{
+        // Envío al backend
+        const payload = {
+          k: usp.get('k'),
+          route: 'participante.submit',
+          data: {
+            mod,
+            nombre: (fd.get('nombre')||'').trim(),
+            cargo: (fd.get('cargo')||'').trim(),
+            rut,
+            hotel: fd.get('hotel'),
+            e1: fd.get('e1'),
+            e2: fd.get('e2'),
+            e3: fd.get('e3'),
+            lo_mejor: fd.get('lo_mejor') || '',
+            a_mejorar: fd.get('a_mejorar') || ''
+          }
+        };
+
+        if (!window.PROMET?.apiPost) {
+          alert('No se encuentra la función de envío. Verifica assets/app.js y la API_URL.'); return;
+        }
+        await window.PROMET.apiPost('participante.submit', payload);
+        alert('¡Gracias! Registro enviado.');
+        form.reset();
+      }catch(e){
+        alert(e.message || 'Error al enviar.');
+      }
+    });
+  })();
+</script>
+</body>
+</html>
