@@ -1,125 +1,89 @@
-/* assets/app.js — Promet Onboarding */
+/* Promet Onboarding · utilidades front */
 
-// === Config global ===
-const CONFIG = {
-  // Pega aquí tu URL de Apps Script (termina en /exec)
-  API_URL: "https://script.google.com/macros/s/AKfycbz-nlterj3rCyJn8ajkmZRAVxSZEnIUElM0oPyQ3JxdUwKYwbvqM4r8rSJlLiyUJfS0/exec",
+(function(global){
+  const CONFIG = {
+    API_URL: (global.PROMET && global.PROMET.CONFIG && global.PROMET.CONFIG.API_URL) || "", // override en HTML
+    HOTELES: ["Calama","Colbún","Coya","Engie","Fidelia","Mejillones"],
+    TOKENS: { participante:"PART2025", formador:"FORM2025!", champion:"CHAMP2025!" },
+    MOD_TITLES: {
+      D1:"Inducción General",
+      D2:"Inducción Hotel",
+      D3:"Cultura de Servicio y Seguridad",
+      D4:"Funciones y Competencias rol Aux. Aseo / Mucama",
+      D5:"Prueba de Contenidos"
+    },
+    // Temas por día para Champion (Aux. Aseo / Mucama)
+    CHAMP_TOPICS: {
+      D1: [
+        "Presentación del hotel y recorrido general",
+        "Presentación del equipo (supervisor, mantención, recepción, bodega)",
+        "Explicación de horarios, zonas de trabajo y puntos de reunión",
+        "Revisión y entrega de EPP y uniforme",
+        "Reglas básicas de seguridad y convivencia"
+      ],
+      D2: [
+        "Apertura segura de habitación",
+        "Preparación del carro de limpieza",
+        "Orden lógico de trabajo (habitación→baño)",
+        "Uso de productos y seguridad química",
+        "Cierre de habitación limpia (control visual final)"
+      ],
+      D3: [
+        "Uso de guantes y químicos",
+        "Reposición de amenities",
+        "Reposición de frigobar (si aplica)",
+        "Control de stock y comunicación con bodega",
+        "Limpieza del baño (lavamanos, WC, ducha, espejos, pisos)"
+      ],
+      D4: [
+        "Diferencias: huésped nuevo vs salida",
+        "Protocolo de revisión en Check Out (olvidos, reportes)",
+        "Preparación para Check In",
+        "Comunicación con recepción y supervisor (estado habitación)",
+        "Revisión de tiempos estándar y trato al huésped"
+      ]
+    }
+  };
 
-  HOTELES: ["Calama","Colbún","Coya","Engie","Fidelia","Mejillones"],
-
-  TOKENS: {
-    participante: "PART2025",
-    formador: "FORM2025!",
-    champion: "CHAMP2025!"
+  function renderHoteles(selectEl){
+    if(!selectEl) return;
+    selectEl.innerHTML = `<option value="">Selecciona hotel</option>` +
+      CONFIG.HOTELES.map(h=>`<option>${h}</option>`).join("");
   }
-};
 
-// === Utilidades DOM/URL ===
-function qs(sel, root=document){ return root.querySelector(sel); }
-function qsa(sel, root=document){ return Array.from(root.querySelectorAll(sel)); }
-function param(name){ return new URLSearchParams(location.search).get(name); }
-
-// === RUT (14122472-7) ===
-function validarRUT(str){
-  const re=/^[0-9]{7,8}-[0-9Kk]$/;
-  if(!re.test(str)) return false;
-  const [num,dv]=str.split("-");
-  let suma=0, m=2;
-  for(let i=num.length-1;i>=0;i--){ suma+=parseInt(num[i],10)*m; m=(m===7)?2:m+1; }
-  const res=11-(suma%11);
-  const dvCalc=(res===11)?"0":(res===10?"K":String(res));
-  return dvCalc.toUpperCase()===dv.toUpperCase();
-}
-
-// === Hoteles ===
-function renderHoteles(selectEl){
-  if(!selectEl) return;
-  selectEl.innerHTML = `<option value="">Selecciona hotel</option>` +
-    CONFIG.HOTELES.map(h=>`<option value="${h}">${h}</option>`).join("");
-}
-
-// === HTTP helper ===
-async function apiPost(route, payload){
-  const res = await fetch(CONFIG.API_URL, {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({route, ...payload})
-  });
-  if(!res.ok){
-    const t = await res.text();
-    throw new Error(t || `HTTP ${res.status}`);
+  function validarRUT(rut){
+    // 14122472-7, sin puntos
+    return /^[0-9]{7,8}-[0-9Kk]$/.test(String(rut||"").trim());
   }
-  return res.json();
-}
 
-// === Token por rol (URL ?k=...) ===
-function requireToken(expected){
-  const k = param('k') || '';
-  if(!k || k !== CONFIG.TOKENS[expected]){
-    alert('Acceso denegado: token inválido para este rol.');
-    throw new Error('Bad token');
+  // API fetch (evita preflight CORS → text/plain)
+  async function apiPost(route, payload){
+    const url = (global.PROMET && global.PROMET.CONFIG && global.PROMET.CONFIG.API_URL) || CONFIG.API_URL;
+    if(!url) throw new Error("API_URL no definida. (override HTML o app.js)");
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ route, ...payload })
+    });
+    if(!res.ok) throw new Error(await res.text() || ('HTTP '+res.status));
+    return res.json();
   }
-  return k;
-}
 
-// === Participantes en Formador ===
-function toJSONParticipants(container){
-  if(!container) return [];
-  const rows = qsa('.participant-row', container).map(row=>({
-    nombre: qs('input[name="p_nombre"]', row)?.value.trim() || "",
-    cargo:  qs('input[name="p_cargo"]', row)?.value.trim() || "",
-    rut:    qs('input[name="p_rut"]', row)?.value.trim() || ""
-  })).filter(p=>p.nombre || p.cargo || p.rut);
-  return rows;
-}
-
-function addParticipantRow(container){
-  const row = document.createElement('div');
-  row.className='participant-row row';
-  row.innerHTML = `
-    <div>
-      <label>Nombre y Apellido</label>
-      <input name="p_nombre" placeholder="Ej: Cristóbal Alfaro">
-    </div>
-    <div>
-      <label>Cargo</label>
-      <input name="p_cargo" placeholder="Ej: Auxiliar de Aseo">
-    </div>
-    <div>
-      <label>RUT (14122472-7)</label>
-      <input name="p_rut" placeholder="14122472-7">
-    </div>
-    <div style="display:flex;align-items:flex-end;gap:8px">
-      <button type="button" class="btn btn-ghost remove">Quitar</button>
-    </div>`;
-  container.appendChild(row);
-  qs('.remove', row).onclick=()=>row.remove();
-}
-
-// === Prueba (preguntas) ===
-async function fetchQuiz(dia){
-  const res = await fetch(`${CONFIG.API_URL}?route=quiz.questions&dia=${encodeURIComponent(dia)}`);
-  if(!res.ok) throw new Error('No se pudieron cargar las preguntas');
-  return res.json(); // {ok:true, questions:[{id,enunciado,alt_a,...}]}
-}
-
-// ===== Fallbacks útiles (por si hay caché o bloqueos) =====
-
-// Rellena hoteles si el select quedó vacío (puedes llamar tras renderHoteles)
-function ensureHoteles(selectEl){
-  if(!selectEl) return;
-  if (!selectEl.options.length || selectEl.options.length === 1) {
-    selectEl.innerHTML = `
-      <option value="">Selecciona hotel</option>
-      <option>Calama</option>
-      <option>Colbún</option>
-      <option>Coya</option>
-      <option>Engie</option>
-      <option>Fidelia</option>
-      <option>Mejillones</option>
-    `;
+  // DOM helpers (escala 1..7)
+  function renderScale7(name, host){
+    if(!host) return;
+    host.innerHTML = [1,2,3,4,5,6,7].map(n =>
+      `<label><input type="radio" name="${name}" value="${n}" required><span class="dot">${n}</span></label>`
+    ).join("");
   }
-}
 
-// Forzar lectura de última versión de JS desde HTML:
-// <script defer src="assets/app.js?v=2"></script>
+  // Expose
+  global.PROMET = global.PROMET || {};
+  global.PROMET.CONFIG = Object.assign({}, CONFIG, global.PROMET.CONFIG||{});
+  global.PROMET.renderHoteles = renderHoteles;
+  global.PROMET.validarRUT = validarRUT;
+  global.PROMET.apiPost = apiPost;
+  global.PROMET.renderScale7 = renderScale7;
+
+  console.log("[PROMET] app.js cargado. API_URL:", (global.PROMET.CONFIG.API_URL||"(override pendiente)"));
+})(window);
