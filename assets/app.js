@@ -3,7 +3,7 @@
 // === Config global ===
 const CONFIG = {
   // Pega aquí tu URL de Apps Script (termina en /exec)
-  API_URL: "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE",
+  API_URL: "https://script.google.com/macros/s/AKfycbw4WUhBCWJtUEKNx9uUdwGrp_40MiodLpJFDDSqCk6v90v_mYr84xp7sVOOvlM_dhcN/exec",
 
   HOTELES: ["Calama","Colbún","Coya","Engie","Fidelia","Mejillones"],
 
