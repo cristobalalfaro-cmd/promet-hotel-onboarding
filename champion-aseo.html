@@ -1,0 +1,160 @@
+
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Champion · Tutoría Aseo</title>
+  <link rel="stylesheet" href="assets/styles.css">
+  <script defer src="assets/app.js"></script>
+</head>
+<body>
+<header class="header">
+  <div class="brand">Champion · Auxiliar de Aseo/Mucama</div>
+  <div class="badge">Día: <span id="modTag"></span></div>
+</header>
+<div class="container">
+  <form id="f">
+    <div class="row">
+      <div>
+        <label>Nombre del Champion</label>
+        <input name="champion" required>
+      </div>
+      <div>
+        <label>Fecha de Tutoría</label>
+        <input type="date" name="fecha" required>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Hotel</label>
+        <select name="hotel" id="hotel" required></select>
+      </div>
+      <div>
+        <label>RUT del Participante</label>
+        <input name="rut" placeholder="14122472-7" required>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Nombre del Participante</label>
+        <input name="nombre" required>
+      </div>
+      <div>
+        <label>Cargo Evaluado</label>
+        <input name="cargo" value="Auxiliar de Aseo / Mucama">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Fase</label>
+        <select name="fase" required>
+          <option value="">Selecciona</option>
+          <option>Diagnóstico (Demostración)</option>
+          <option>Evaluación (Con Nota)</option>
+        </select>
+      </div>
+      <div>
+        <label>Nota (1–7)</label>
+        <input name="nota" type="number" min="1" max="7" step="1" placeholder="Sólo en Evaluación">
+      </div>
+    </div>
+    <fieldset>
+      <legend>Temas del Día</legend>
+      <div id="temas"></div>
+    </fieldset>
+    <label>Comentarios del Champion (opcional)</label>
+    <textarea name="comentarios"></textarea>
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" onclick="history.back()">Volver</button>
+      <button class="btn btn-primary">Guardar</button>
+    </div>
+    <p class="small">Requiere token (?k=CHAMP2025!)</p>
+  </form>
+</div>
+<script>
+(function(){
+  renderHoteles(document.getElementById('hotel'));
+  const mod = param('mod')||'D1'; // D1..D5
+  document.getElementById('modTag').textContent = mod;
+  const k = requireToken('champion');
+  const TEMAS = {
+    D1: [
+      "Presentación del hotel y recorrido general",
+      "Presentación del equipo (supervisor, mantención, recepción, bodega)",
+      "Explicación de horarios, zonas de trabajo y puntos de reunión",
+      "Revisión y entrega de EPP y uniforme",
+      "Reglas básicas de seguridad y convivencia"
+    ],
+    D2: [
+      "Apertura segura de habitación",
+      "Preparación del carro de limpieza",
+      "Orden lógico de trabajo: desde la habitación hacia el baño",
+      "Uso de productos de limpieza y normas de seguridad química",
+      "Cierre de habitación limpia (control visual final)"
+    ],
+    D3: [
+      "Uso de guantes y químicos",
+      "Reposición de amenities: jabón, shampoo, papel higiénico",
+      "Reposición de frigobar (si aplica)",
+      "Control de stock y comunicación con bodega",
+      "Limpieza del baño paso a paso (lavamanos, WC, ducha, espejos, pisos)"
+    ],
+    D4: [
+      "Diferencias entre una habitación de huésped nuevo y una en salida",
+      "Protocolo de revisión al Check Out (olvidos, reportes)",
+      "Preparación para el Check In (ropa limpia, detalles)",
+      "Comunicación con recepción y supervisor sobre estado de habitación"
+    ],
+    D5: [
+      "Repaso general de limpieza completa (habitación + baño)",
+      "Revisión de tiempos estándar",
+      "Evaluación de orden, detalle, trato al huésped y seguridad",
+      "Revisión de reportes y comunicación con otras áreas"
+    ]
+  };
+  const cont = document.getElementById('temas');
+  (TEMAS[mod]||[]).forEach((t,i)=>{
+    const div=document.createElement('div');
+    div.className='card';
+    div.innerHTML=`<strong>${i+1}. ${t}</strong><label>Comentario (opcional)</label><textarea name="t${i+1}"></textarea>`;
+    cont.appendChild(div);
+  });
+
+  const form = document.getElementById('f');
+  form.addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    const fd = new FormData(form);
+    const rut = fd.get('rut').trim();
+    if(!validarRUT(rut)){ alert('RUT inválido'); return; }
+    const fase = fd.get('fase');
+    const nota = fd.get('nota');
+    if(fase==='Evaluación (Con Nota)' && (!nota || Number(nota)<1 || Number(nota)>7)){
+      alert('Debes ingresar nota de 1 a 7 en Evaluación'); return;
+    }
+    if(fase.indexOf('Diagnóstico')===0 && (nota && nota.trim()!=='')){
+      alert('En Diagnóstico no se ingresa nota'); return;
+    }
+    const data = {
+      mod, k,
+      champion: fd.get('champion').trim(),
+      fecha: fd.get('fecha'),
+      hotel: fd.get('hotel'),
+      rut: rut,
+      nombre: fd.get('nombre').trim(),
+      cargo: fd.get('cargo').trim(),
+      fase: fase,
+      nota: nota || '',
+      comentarios: fd.get('comentarios')||''
+    };
+    for(let i=1;i<=5;i++){ data['t'+i]=fd.get('t'+i)||''; }
+    try{
+      const res = await apiPost('champion.submit', {k, route:'champion.submit', data});
+      alert('Registro guardado.');
+      form.reset();
+    }catch(e){ alert(e.message); }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prueba de Contenidos (D5)</title>
+  <link rel="stylesheet" href="assets/styles.css">
+  <script defer src="assets/app.js"></script>
+</head>
+<body>
+<header class="header">
+  <div class="brand">Prueba de Contenidos · D5</div>
+  <div class="badge">Participante</div>
+</header>
+<div class="container">
+  <form id="f-ident">
+    <div class="row">
+      <div>
+        <label>RUT (14122472-7)</label>
+        <input name="rut" required placeholder="14122472-7">
+      </div>
+      <div>
+        <label>Hotel</label>
+        <select name="hotel" id="hotel" required></select>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary">Comenzar</button>
+    </div>
+    <p class="small">Debes haber asistido a D1, D2 y D3. Requiere token (?k=PART2025)</p>
+  </form>
+  <form id="f-quiz" style="display:none"></form>
+</div>
+<script>
+(async function(){
+  renderHoteles(document.getElementById('hotel'));
+  const k = requireToken('participante');
+  const ident = document.getElementById('f-ident');
+  const quiz = document.getElementById('f-quiz');
+  ident.addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    const fd=new FormData(ident);
+    const rut=fd.get('rut').trim(), hotel=fd.get('hotel');
+    if(!validarRUT(rut)){ alert('RUT inválido'); return; }
+    try{
+      const data = await fetchQuiz('D5'); // {ok, questions}
+      if(!data.ok) throw new Error('Sin preguntas');
+      // Render quiz (todas en una página)
+      quiz.innerHTML = `
+        <div class="notice">Marca una alternativa por pregunta.</div>
+        ${data.questions.map((q,idx)=>`
+          <div class="card">
+            <div><strong>${idx+1}.</strong> ${q.enunciado}</div>
+            <div class="scale">
+              ${['a','b','c','d'].map(k=>`
+                <label>
+                  <input type="radio" name="q_${q.id}" value="${k.toUpperCase()}" required> ${q['alt_'+k]}
+                </label>
+              `).join('')}
+            </div>
+          </div>
+        `).join('')}
+        <div class="actions">
+          <button type="button" class="btn btn-ghost" onclick="location.reload()">Cancelar</button>
+          <button class="btn btn-primary">Enviar respuestas</button>
+        </div>
+      `;
+      quiz.style.display='block'; ident.style.display='none';
+      quiz.addEventListener('submit', async (ev2)=>{
+        ev2.preventDefault();
+        const fd2=new FormData(quiz);
+        const answers = data.questions.map(q=>({id:q.id, ans: fd2.get('q_'+q.id)}));
+        try{
+          const res = await apiPost('quiz.submit', {k, route:'quiz.submit', data:{rut, hotel, dia:'D5', answers}});
+          alert(`Prueba enviada. Puntaje: ${res.score}/${res.total} (${Math.round(res.percent)}%)`);
+          location.href='index.html';
+        }catch(e){ alert(e.message); }
+      }, {once:true});
+    }catch(e){ alert(e.message); }
+  });
+})();
+</script>
+</body>
+</html>

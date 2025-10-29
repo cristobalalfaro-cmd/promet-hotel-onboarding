@@ -1,0 +1,37 @@
+
+:root{
+  --promet-navy:#0F2A4A; /* reemplazar por navy exacto */
+  --promet-primary:#1B3E6B; /* reemplazar */
+  --promet-accent:#EF6B4A; /* reemplazar (círculo coral) */
+  --promet-gray:#E6E7E8; /* reemplazar */
+  --text:#000;
+  --bg:#fff;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+a{color:var(--promet-primary);text-decoration:none}
+.container{max-width:880px;margin:0 auto;padding:16px}
+.header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:4px solid var(--promet-navy);background:linear-gradient(90deg,var(--promet-gray),#fff)}
+.brand{font-weight:800;letter-spacing:.3px;color:var(--promet-navy)}
+.badge{background:var(--promet-accent);color:#fff;padding:4px 8px;border-radius:999px;font-size:.8rem}
+.card{border:1px solid #ddd;border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+label{display:block;margin:10px 0 6px;font-weight:600}
+input,select,textarea{width:100%;padding:12px;border:2px solid #ccc;border-radius:12px;background:#fff;color:#000;font-size:1rem}
+input[type=date]{padding:10px}
+textarea{min-height:90px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.actions{position:sticky;bottom:0;background:#fff;border-top:1px solid #ddd;padding:12px;display:flex;gap:10px}
+.btn{border:none;border-radius:14px;padding:12px 16px;font-weight:700;cursor:pointer}
+.btn-primary{background:var(--promet-navy);color:#fff}
+.btn-ghost{background:#f6f6f6;color:#333}
+.notice{padding:10px;border-left:4px solid var(--promet-accent);background:#fff1ec;border-radius:8px;margin:8px 0}
+fieldset{border:1px solid #ddd;border-radius:12px;padding:12px;margin:12px 0}
+legend{padding:0 6px;font-weight:700;color:var(--promet-navy)}
+hr{border:none;border-top:1px dashed #ccc;margin:16px 0}
+.small{font-size:.9rem;color:#444}
+input[type=radio]{width:auto}
+.scale{display:flex;gap:8px;flex-wrap:wrap}
+.scale label{font-weight:400;margin:0}
+.scale input{margin-right:6px}
+footer{margin:32px 0 16px;color:#666;font-size:.85rem;text-align:center}

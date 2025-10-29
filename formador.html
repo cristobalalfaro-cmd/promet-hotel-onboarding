@@ -1,0 +1,89 @@
+
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Formador · Registro</title>
+  <link rel="stylesheet" href="assets/styles.css">
+  <script defer src="assets/app.js"></script>
+</head>
+<body>
+<header class="header">
+  <div class="brand">Formador · Registro</div>
+  <div class="badge">Módulo: <span id="modTag"></span></div>
+</header>
+<div class="container">
+  <form id="f">
+    <div class="row">
+      <div>
+        <label>Nombre del Formador</label>
+        <input name="formador" required>
+      </div>
+      <div>
+        <label>Fecha de realización</label>
+        <input name="fecha" type="date" required>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Hotel</label>
+        <select name="hotel" id="hotel" required></select>
+      </div>
+      <div>
+        <label>RUT Formador (opcional)</label>
+        <input name="rut_formador" placeholder="14122472-7">
+      </div>
+    </div>
+    <fieldset>
+      <legend>Participantes</legend>
+      <div id="plist"></div>
+      <button type="button" class="btn btn-ghost" id="addP">Agregar participante</button>
+      <p class="small">Para cada participante, idealmente incluye su RUT para la asistencia.</p>
+    </fieldset>
+    <label>Comentarios del Formador (opcional)</label>
+    <textarea name="comentarios"></textarea>
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" onclick="history.back()">Volver</button>
+      <button class="btn btn-primary">Guardar reunión</button>
+    </div>
+    <p class="small">Necesitas token del rol en la URL (?k=FORM2025!)</p>
+  </form>
+</div>
+<script>
+(function(){
+  renderHoteles(document.getElementById('hotel'));
+  const mod = param('mod')||'D1';
+  document.getElementById('modTag').textContent = mod;
+  const k = requireToken('formador');
+  const plist = document.getElementById('plist');
+  document.getElementById('addP').onclick=()=>addParticipantRow(plist);
+  addParticipantRow(plist);
+  const form = document.getElementById('f');
+  form.addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    const fd = new FormData(form);
+    const rutF = (fd.get('rut_formador')||'').trim();
+    if(rutF && !validarRUT(rutF)){ alert('RUT del formador inválido'); return; }
+    const part = toJSONParticipants(plist);
+    // validate participant RUTs if provided
+    for(const p of part){
+      if(p.rut && !validarRUT(p.rut)){ alert('RUT participante inválido: '+p.rut); return; }
+    }
+    const payload = {
+      k, route:'formador.submit',
+      data:{
+        mod, formador: fd.get('formador').trim(), fecha: fd.get('fecha'), hotel: fd.get('hotel'),
+        rut_formador: rutF, participantes: part, comentarios: fd.get('comentarios')||''
+      }
+    };
+    try{
+      const res = await apiPost('formador.submit', payload);
+      alert('Registro guardado. Asistencia actualizada.');
+      form.reset(); plist.innerHTML=''; addParticipantRow(plist);
+    }catch(e){ alert(e.message); }
+  });
+})();
+</script>
+</body>
+</html>
