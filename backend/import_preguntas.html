@@ -1,0 +1,48 @@
+
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;padding:12px}
+    textarea{width:100%;min-height:260px;padding:10px;border:1px solid #ccc;border-radius:8px}
+    label{display:block;margin:8px 0 4px;font-weight:600}
+    input,select{width:100%;padding:8px;border:1px solid #ccc;border-radius:8px}
+    button{margin-top:10px;padding:10px 12px;border:none;border-radius:8px;background:#142C54;color:#fff;font-weight:700;cursor:pointer}
+    .small{color:#555;font-size:.9em}
+  </style>
+</head>
+<body>
+  <h3>Importar preguntas D5</h3>
+  <label>Día</label>
+  <select id="dia">
+    <option value="D5">D5</option>
+    <option value="D1">D1</option>
+    <option value="D2">D2</option>
+    <option value="D3">D3</option>
+    <option value="D4">D4</option>
+  </select>
+  <label>Módulo</label>
+  <input id="modulo" value="Prueba D5">
+  <label>Preguntas (pegar texto)</label>
+  <textarea id="txt" placeholder="P1) Enunciado...
+A) ...
+B) ...
+C) ...
+D) ...
+Correcta: B"></textarea>
+  <button onclick="enviar()">Importar</button>
+  <p id="msg" class="small"></p>
+  <script>
+    function enviar(){
+      var payload = {dia:document.getElementById('dia').value, modulo:document.getElementById('modulo').value, text:document.getElementById('txt').value};
+      google.script.run.withSuccessHandler(function(res){
+        try{ var obj = JSON.parse(res); }catch(e){ obj={ok:false,error:'Respuesta inválida'} }
+        var msg = document.getElementById('msg');
+        if(obj.ok){ msg.textContent = 'Importadas '+obj.inserted+' preguntas.'; msg.style.color='green'; }
+        else{ msg.textContent = 'Error: '+obj.error; msg.style.color='crimson'; }
+      }).importQuestionsFromTextHandler(payload);
+    }
+  </script>
+</body>
+</html>
