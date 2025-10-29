@@ -1,30 +1,62 @@
-
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Formador · Registro</title>
-  <link rel="stylesheet" href="assets/styles.css">
-  <script defer src="assets/app.js"></script>
+  <link rel="stylesheet" href="assets/styles.css" />
+  <script defer src="assets/app.js?v=6"></script>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#fff;color:#000}
+    .header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:4px solid #142C54;background:linear-gradient(90deg,#E4E4E3,#fff)}
+    .brand{font-weight:800;color:#142C54}
+    .contact{font-size:.95rem}
+    .badge{background:#F26135;color:#fff;border-radius:999px;padding:4px 8px;font-size:.8rem}
+    .container{max-width:980px;margin:0 auto;padding:16px}
+    .card{border:1px solid #ddd;border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    label{display:block;margin:10px 0 6px;font-weight:600}
+    input,select,textarea{width:100%;padding:12px;border:2px solid #ccc;border-radius:12px;background:#fff;color:#000;font-size:1rem}
+    textarea{min-height:90px}
+    .list{border:1px solid #ddd;border-radius:12px;padding:12px;margin-top:8px}
+    .item{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px}
+    .actions{display:flex;gap:10px;position:sticky;bottom:0;background:#fff;border-top:1px solid #ddd;padding:12px;margin-top:16px}
+    .btn{border:none;border-radius:14px;padding:10px 14px;font-weight:700;cursor:pointer}
+    .btn-primary{background:#142C54;color:#fff}
+    .btn-ghost{background:#f6f6f6}
+    .btn-mini{padding:6px 10px;border-radius:10px}
+  </style>
 </head>
 <body>
 <header class="header">
   <div class="brand">Formador · Registro</div>
-  <div class="badge">Módulo: <span id="modTag"></span></div>
+  <div class="contact">Contacto: <a href="mailto:onboarding@promet.cl">onboarding@promet.cl</a></div>
+  <div class="badge">Módulo: <span id="modTag"></span> · <span id="modTitle"></span></div>
 </header>
+
+<script>
+  (function(){
+    var URL_BACKEND = "https://script.google.com/macros/s/AKfycbz-nlterj3rCyJn8ajkmZRAVxSZEnIUElM0oPyQ3JxdUwKYwbvqM4r8rSJlLiyUJfS0/exec";
+    window.PROMET = window.PROMET || {};
+    window.PROMET.CONFIG = window.PROMET.CONFIG || {};
+    window.PROMET.CONFIG.API_URL = URL_BACKEND;
+    window.PROMET.BUILD = "v6f";
+  })();
+</script>
+
 <div class="container">
-  <form id="f">
+  <form id="f" class="card">
     <div class="row">
       <div>
         <label>Nombre del Formador</label>
-        <input name="formador" required>
+        <input name="formador" required />
       </div>
       <div>
         <label>Fecha de realización</label>
-        <input name="fecha" type="date" required>
+        <input name="fecha" type="date" required />
       </div>
     </div>
+
     <div class="row">
       <div>
         <label>Hotel</label>
@@ -32,56 +64,98 @@
       </div>
       <div>
         <label>RUT Formador (opcional)</label>
-        <input name="rut_formador" placeholder="14122472-7">
+        <input name="rut_formador" placeholder="14122472-7" />
       </div>
     </div>
-    <fieldset>
+
+    <fieldset class="list">
       <legend>Participantes</legend>
-      <div id="plist"></div>
-      <button type="button" class="btn btn-ghost" id="addP">Agregar participante</button>
-      <p class="small">Para cada participante, idealmente incluye su RUT para la asistencia.</p>
+      <div id="items"></div>
+      <button type="button" id="add" class="btn btn-mini">Agregar participante</button>
+      <div style="color:#666;margin-top:6px;">Idealmente incluye el RUT para asistencia.</div>
     </fieldset>
+
     <label>Comentarios del Formador (opcional)</label>
-    <textarea name="comentarios"></textarea>
+    <textarea name="comentarios" placeholder="..."></textarea>
+
     <div class="actions">
       <button type="button" class="btn btn-ghost" onclick="history.back()">Volver</button>
       <button class="btn btn-primary">Guardar reunión</button>
     </div>
-    <p class="small">Necesitas token del rol en la URL (?k=FORM2025!)</p>
   </form>
 </div>
+
+<footer style="text-align:center;color:#666;margin:24px 0 12px;">© Promet</footer>
+
 <script>
 (function(){
-  renderHoteles(document.getElementById('hotel'));
-  const mod = param('mod')||'D1';
+  const usp = new URLSearchParams(location.search);
+  const k = usp.get('k');             // FORM2025!
+  const mod = (usp.get('mod')||'D1').toUpperCase();
+  if(!k){ location.href='index.html'; return; }
+
   document.getElementById('modTag').textContent = mod;
-  const k = requireToken('formador');
-  const plist = document.getElementById('plist');
-  document.getElementById('addP').onclick=()=>addParticipantRow(plist);
-  addParticipantRow(plist);
+  document.getElementById('modTitle').textContent =
+    (window.PROMET?.CONFIG?.MOD_TITLES?.[mod]) || mod;
+
+  PROMET.renderHoteles(document.getElementById('hotel'));
+
+  const items = document.getElementById('items');
+  const addBtn = document.getElementById('add');
+
+  function addItem(data={}){
+    const row = document.createElement('div');
+    row.className = 'item';
+    row.innerHTML = `
+      <input placeholder="Nombre y Apellido" value="${data.nombre||''}" class="i-nombre"/>
+      <input placeholder="RUT (14122472-7)" value="${data.rut||''}" class="i-rut"/>
+      <input placeholder="Cargo" value="${data.cargo||''}" class="i-cargo"/>
+      <button type="button" class="btn btn-mini btn-ghost i-del">Quitar</button>
+    `;
+    row.querySelector('.i-del').onclick = ()=> row.remove();
+    items.appendChild(row);
+  }
+  addBtn.onclick = ()=> addItem();
+  // uno por defecto
+  addItem();
+
   const form = document.getElementById('f');
   form.addEventListener('submit', async (ev)=>{
     ev.preventDefault();
     const fd = new FormData(form);
-    const rutF = (fd.get('rut_formador')||'').trim();
-    if(rutF && !validarRUT(rutF)){ alert('RUT del formador inválido'); return; }
-    const part = toJSONParticipants(plist);
-    // validate participant RUTs if provided
-    for(const p of part){
-      if(p.rut && !validarRUT(p.rut)){ alert('RUT participante inválido: '+p.rut); return; }
+
+    // tomar participantes
+    const filas = [...items.querySelectorAll('.item')];
+    if(filas.length===0){ alert('Agrega al menos un participante.'); return; }
+    const participantes = [];
+    for(const row of filas){
+      const nombre = row.querySelector('.i-nombre').value.trim();
+      const rut = row.querySelector('.i-rut').value.trim();
+      const cargo = row.querySelector('.i-cargo').value.trim();
+      if(!nombre){ alert('Falta nombre en un participante.'); return; }
+      if(rut && !PROMET.validarRUT(rut)){ alert('RUT inválido en participantes. Usa 14122472-7'); return; }
+      participantes.push({nombre, rut, cargo});
     }
-    const payload = {
-      k, route:'formador.submit',
-      data:{
-        mod, formador: fd.get('formador').trim(), fecha: fd.get('fecha'), hotel: fd.get('hotel'),
-        rut_formador: rutF, participantes: part, comentarios: fd.get('comentarios')||''
-      }
-    };
+
     try{
-      const res = await apiPost('formador.submit', payload);
-      alert('Registro guardado. Asistencia actualizada.');
-      form.reset(); plist.innerHTML=''; addParticipantRow(plist);
-    }catch(e){ alert(e.message); }
+      await PROMET.apiPost('formador.submit', {
+        k, data:{
+          mod,
+          fecha: fd.get('fecha'),
+          hotel: fd.get('hotel'),
+          formador: (fd.get('formador')||'').trim(),
+          rut_formador: fd.get('rut_formador')||'',
+          participantes,
+          comentarios: fd.get('comentarios')||''
+        }
+      });
+      alert('¡Reunión guardada!');
+      form.reset();
+      items.innerHTML = '';
+      addItem();
+    }catch(e){
+      alert(e.message || 'Error al guardar.');
+    }
   });
 })();
 </script>
