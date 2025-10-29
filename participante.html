@@ -163,22 +163,26 @@
   renderScale7('e3', document.getElementById('sc_lugar'));
 
   // Fallback apiPost (usa API_URL del override)
-  (function ensureApiPost(){
-    if (window.PROMET && typeof window.PROMET.apiPost === 'function') return;
-    window.PROMET = window.PROMET || {};
-    window.PROMET.CONFIG = window.PROMET.CONFIG || {};
-    const API_URL = window.PROMET.CONFIG.API_URL;
+(function ensureApiPost(){
+  if (window.PROMET && typeof window.PROMET.apiPost === 'function') return;
 
-    window.PROMET.apiPost = async function(route, payload){
-      if (!API_URL) throw new Error('API_URL no definida.');
-      const res = await fetch(API_URL, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ route, ...payload })
-      });
-      if(!res.ok) throw new Error(await res.text() || ('HTTP '+res.status));
-      return res.json();
-    };
-  })();
+  window.PROMET = window.PROMET || {};
+  window.PROMET.CONFIG = window.PROMET.CONFIG || {};
+  const API_URL = window.PROMET.CONFIG.API_URL;
+
+  // Evita preflight: sin headers custom o usando text/plain
+  window.PROMET.apiPost = async function(route, payload){
+    if (!API_URL) throw new Error('API_URL no definida.');
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      // SIN "application/json" para no gatillar OPTIONS
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ route, ...payload })
+    });
+    if (!res.ok) throw new Error(await res.text() || ('HTTP ' + res.status));
+    return res.json();
+  };
+})();
 
   // Envío
   const form = document.getElementById('f');
