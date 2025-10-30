@@ -39,7 +39,7 @@
   <div class="badge">Día: <span id="modTag"></span> · <span id="modTitle"></span></div>
 </header>
 
-<!-- OVERRIDE API_URL (igual que participante) -->
+<!-- Override garantizado de API_URL -->
 <script>
   (function(){
     var URL_BACKEND = "https://script.google.com/macros/s/AKfycbz-nlterj3rCyJn8ajkmZRAVxSZEnIUElM0oPyQ3JxdUwKYwbvqM4r8rSJlLiyUJfS0/exec";
@@ -95,8 +95,8 @@
         </select>
       </div>
       <div>
-        <label>Nota (1–7)</label>
-        <div class="scale-label">Solo visible en Evaluación</div>
+        <label style="visibility:hidden">.</label>
+        <div class="scale-label">Las notas se activan en “Evaluación”</div>
       </div>
     </div>
 
@@ -128,11 +128,23 @@
   document.getElementById('modTitle').textContent =
     (window.PROMET?.CONFIG?.MOD_TITLES?.[mod]) || mod;
 
-  // hoteles
-  PROMET.renderHoteles(document.getElementById('hotel'));
+  // Hotel con fallback robusto
+  const selHotel = document.getElementById('hotel');
+  if (window.PROMET?.renderHoteles) window.PROMET.renderHoteles(selHotel);
+  if (!selHotel.options.length || selHotel.options.length === 1) {
+    selHotel.innerHTML = `
+      <option value="">Selecciona hotel</option>
+      <option>Calama</option>
+      <option>Colbún</option>
+      <option>Coya</option>
+      <option>Engie</option>
+      <option>Fidelia</option>
+      <option>Mejillones</option>
+    `;
+  }
 
   // Render de temas según día
-  const topics = (PROMET.CONFIG.CHAMP_TOPICS[mod]||[]);
+  const topics = (window.PROMET?.CONFIG?.CHAMP_TOPICS?.[mod] || []);
   const topicsWrap = document.getElementById('topicsWrap');
   topicsWrap.innerHTML = topics.map((t,idx)=>`
     <div class="grid-topics" data-topic-index="${idx}">
@@ -144,8 +156,18 @@
     </div>
   `).join("");
 
-  // Escalas
-  topics.forEach((_,i)=>PROMET.renderScale7(`n_${i}`, document.getElementById(`sc_${i}`)));
+  // Escalas 1..7
+  topics.forEach((_,i)=>{
+    if (window.PROMET?.renderScale7) {
+      window.PROMET.renderScale7(`n_${i}`, document.getElementById(`sc_${i}`));
+    } else {
+      // fallback mínimo
+      const host = document.getElementById(`sc_${i}`);
+      host.innerHTML = [1,2,3,4,5,6,7].map(n =>
+        `<label><input type="radio" name="n_${i}" value="${n}" required><span class="dot">${n}</span></label>`
+      ).join('');
+    }
+  });
 
   // Modo Diagnóstico: deshabilita notas
   const faseSel = document.getElementById('fase');
@@ -160,6 +182,25 @@
     });
   }
   faseSel.addEventListener('change', applyFase);
+  applyFase();
+
+  // Fallback apiPost local (text/plain) por si app.js cacheado
+  (function ensureApiPost(){
+    if (window.PROMET && typeof window.PROMET.apiPost === 'function') return;
+    window.PROMET = window.PROMET || {};
+    window.PROMET.CONFIG = window.PROMET.CONFIG || {};
+    const API_URL = window.PROMET.CONFIG.API_URL;
+    window.PROMET.apiPost = async function(route, payload){
+      if (!API_URL) throw new Error('API_URL no definida.');
+      const res = await fetch(API_URL, {
+        method:'POST',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify({ route, ...payload })
+      });
+      if(!res.ok) throw new Error(await res.text() || ('HTTP '+res.status));
+      return res.json();
+    };
+  })();
 
   // Envío
   const form = document.getElementById('f');
@@ -167,23 +208,19 @@
     ev.preventDefault();
     const fd = new FormData(form);
 
-    if(!PROMET.validarRUT(fd.get('rut'))){
-      alert('RUT inválido. Formato 14122472-7 (sin puntos).');
-      return;
+    if(!window.PROMET?.validarRUT ? !/^[0-9]{7,8}-[0-9Kk]$/.test(fd.get('rut')) : !window.PROMET.validarRUT(fd.get('rut'))){
+      alert('RUT inválido. Formato 14122472-7 (sin puntos).'); return;
     }
     if(fd.get('fase')==='EVALUACION'){
-      // verificar que haya una nota por cada tema
       for(let i=0;i<topics.length;i++){
         if(!fd.get(`n_${i}`)){ alert('Faltan notas por asignar.'); return; }
       }
     }
 
-    const notas = topics.map((t,i)=>({
-      tema: t, nota: Number(fd.get(`n_${i}`)||0)
-    }));
+    const notas = topics.map((t,i)=>({ tema: t, nota: Number(fd.get(`n_${i}`)||0) }));
 
     try{
-      await PROMET.apiPost('champion.submit', {
+      await window.PROMET.apiPost('champion.submit', {
         k, data:{
           mod,
           hotel: fd.get('hotel'),
@@ -193,7 +230,7 @@
           cargo: fd.get('cargo'),
           champion: (fd.get('champion')||'').trim(),
           fase: fd.get('fase'),
-          notas,                      // [{tema, nota}, ...] (nota=0 si diagnóstico)
+          notas,
           comentario: fd.get('comentario')||''
         }
       });
@@ -204,8 +241,6 @@
       alert(e.message || 'Error al guardar.');
     }
   });
-
-  applyFase();
 })();
 </script>
 </body>
