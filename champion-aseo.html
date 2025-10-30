@@ -46,7 +46,15 @@
     window.PROMET = window.PROMET || {};
     window.PROMET.CONFIG = window.PROMET.CONFIG || {};
     window.PROMET.CONFIG.API_URL = URL_BACKEND;
-    window.PROMET.BUILD = "v6c";
+    window.PROMET.BUILD = "v6c-topics";
+    // Títulos por día (por si app.js no los trae)
+    window.PROMET.CONFIG.MOD_TITLES = Object.assign({
+      D1: "Inducción General",
+      D2: "Inducción Hotel",
+      D3: "Cultura de Servicio y Seguridad",
+      D4: "Funciones y Competencias rol Aux. Aseo / Mucama",
+      D5: "Prueba de Contenidos"
+    }, window.PROMET.CONFIG.MOD_TITLES||{});
   })();
 </script>
 
@@ -90,14 +98,11 @@
         <label>Fase</label>
         <select name="fase" id="fase" required>
           <option value="">Selecciona</option>
-          <option value="DIAGNOSTICO">Diagnóstico (sin nota)</option>
-          <option value="EVALUACION">Evaluación (con nota)</option>
+          <option value="DIAGNOSTICO">Diagnóstico</option>
+          <option value="EVALUACION">Evaluación</option>
         </select>
       </div>
-      <div>
-        <label style="visibility:hidden">.</label>
-        <div class="scale-label">Las notas se activan en “Evaluación”</div>
-      </div>
+      <div></div>
     </div>
 
     <fieldset>
@@ -143,8 +148,44 @@
     `;
   }
 
-  // Render de temas según día
-  const topics = (window.PROMET?.CONFIG?.CHAMP_TOPICS?.[mod] || []);
+  // Temas por día (según tu lista)
+  const CHAMP_TOPICS = {
+    D1: [
+      "Presentación del hotel y recorrido general",
+      "Presentación del equipo (supervisor, mantención, recepción, bodega)",
+      "Explicación de horarios, zonas de trabajo y puntos de reunión",
+      "Revisión y entrega de EPP y uniforme",
+      "Reglas básicas de seguridad y convivencia"
+    ],
+    D2: [
+      "Apertura segura de habitación",
+      "Preparación del carro de limpieza",
+      "Orden lógico de trabajo: desde la habitación hacia el baño",
+      "Uso de productos de limpieza y normas de seguridad química",
+      "Cierre de habitación limpia (control visual final)"
+    ],
+    D3: [
+      "Uso de guantes y químicos"
+    ],
+    D4: [
+      "Diferencias entre una habitación de huésped nuevo y una en salida",
+      "Protocolo de revisión al Check Out (olvidos, reportes)",
+      "Preparación para el Check In (ropa limpia, detalles)",
+      "Comunicación con recepción y supervisor sobre estado de habitación"
+    ],
+    D5: [
+      "Repaso general de limpieza completa (habitación + baño)",
+      "Revisión de tiempos estándar",
+      "Evaluación de orden, detalle, trato al huésped y seguridad",
+      "Revisión de reportes y comunicación con otras áreas",
+      "Reposición de amenities: jabón, shampoo, papel higiénico",
+      "Reposición de frigobar (si aplica)",
+      "Control de stock y comunicación con bodega",
+      "Limpieza del baño paso a paso (lavamanos, WC, ducha, espejos, pisos)"
+    ]
+  };
+
+  const topics = CHAMP_TOPICS[mod] || [];
   const topicsWrap = document.getElementById('topicsWrap');
   topicsWrap.innerHTML = topics.map((t,idx)=>`
     <div class="grid-topics" data-topic-index="${idx}">
@@ -156,7 +197,7 @@
     </div>
   `).join("");
 
-  // Escalas 1..7
+  // Escalas 1..7 SIEMPRE activas (diagnóstico y evaluación)
   topics.forEach((_,i)=>{
     if (window.PROMET?.renderScale7) {
       window.PROMET.renderScale7(`n_${i}`, document.getElementById(`sc_${i}`));
@@ -168,21 +209,6 @@
       ).join('');
     }
   });
-
-  // Modo Diagnóstico: deshabilita notas
-  const faseSel = document.getElementById('fase');
-  function applyFase(){
-    const diag = (faseSel.value === 'DIAGNOSTICO');
-    topics.forEach((_,i)=>{
-      document.querySelectorAll(`input[name="n_${i}"]`).forEach(r=>{
-        r.required = !diag;
-        r.disabled = diag;
-        if(diag) r.checked = false;
-      });
-    });
-  }
-  faseSel.addEventListener('change', applyFase);
-  applyFase();
 
   // Fallback apiPost local (text/plain) por si app.js cacheado
   (function ensureApiPost(){
@@ -208,16 +234,17 @@
     ev.preventDefault();
     const fd = new FormData(form);
 
+    // Validación RUT CL
     if(!window.PROMET?.validarRUT ? !/^[0-9]{7,8}-[0-9Kk]$/.test(fd.get('rut')) : !window.PROMET.validarRUT(fd.get('rut'))){
       alert('RUT inválido. Formato 14122472-7 (sin puntos).'); return;
     }
-    if(fd.get('fase')==='EVALUACION'){
-      for(let i=0;i<topics.length;i++){
-        if(!fd.get(`n_${i}`)){ alert('Faltan notas por asignar.'); return; }
-      }
-    }
 
-    const notas = topics.map((t,i)=>({ tema: t, nota: Number(fd.get(`n_${i}`)||0) }));
+    // Notas siempre requeridas
+    const notas = topics.map((t,i)=>{
+      const v = fd.get(`n_${i}`);
+      if(!v) throw new Error('Faltan notas por asignar.');
+      return { tema: t, nota: Number(v) };
+    });
 
     try{
       await window.PROMET.apiPost('champion.submit', {
@@ -236,7 +263,6 @@
       });
       alert('¡Listo! Tutoría registrada.');
       form.reset();
-      applyFase();
     }catch(e){
       alert(e.message || 'Error al guardar.');
     }
